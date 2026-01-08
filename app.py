@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import datetime
-import streamlit as st
 
 
 # ==================================================
@@ -46,7 +45,7 @@ try:
     env = get_json(URL_ENV)
 except Exception as e:
     st.error(f"Erreur API environnement: {e}")
-    env = []
+    env = None
 
 # ==================================================
 # DATAFRAMES
@@ -59,8 +58,9 @@ df = pd.DataFrame(logs)
 df["timestamp"] = pd.to_datetime(df["timestamp"])
 
 if env:
-    df_env = pd.DataFrame(env)
-    df_env["timestamp"] = pd.to_datetime(df_env["timestamp"])
+    # env = un seul objet (cache)
+    df_env = pd.DataFrame([env])
+    df_env["timestamp"] = pd.to_datetime(df_env["timestamp"], unit="ms")
 else:
     df_env = pd.DataFrame(columns=["timestamp", "temp", "hum", "lum", "mq", "fire"])
 
@@ -168,4 +168,3 @@ with tab2:
         st.warning("Aucune donnée environnementale disponible.")
 
 #time.sleep(2)
-st.experimental_rerun()
