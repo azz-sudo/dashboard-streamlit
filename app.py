@@ -2,12 +2,24 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import datetime
-
+import time
 
 # ==================================================
 # CONFIG STREAMLIT
 # ==================================================
 st.set_page_config(page_title="Dashboard Sécurité", layout="wide")
+
+# ==================================================
+# AUTO REFRESH (STREAMLIT CLOUD COMPATIBLE)
+# ==================================================
+REFRESH_INTERVAL = 2  # secondes
+
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh >= REFRESH_INTERVAL:
+    st.session_state.last_refresh = time.time()
+    st.experimental_rerun()
 
 # ==================================================
 # API CONFIG (NODE-RED)
@@ -58,7 +70,6 @@ df = pd.DataFrame(logs)
 df["timestamp"] = pd.to_datetime(df["timestamp"])
 
 if env:
-    # env = un seul objet (cache)
     df_env = pd.DataFrame([env])
     df_env["timestamp"] = pd.to_datetime(df_env["timestamp"], unit="ms")
 else:
@@ -68,6 +79,7 @@ else:
 # UI
 # ==================================================
 st.title("📊 Dashboard Chambre Forte")
+st.caption("🔄 Rafraîchissement automatique toutes les 2 secondes")
 
 tab1, tab2 = st.tabs(["Contrôle et Historique", "Données Environnementales"])
 
@@ -166,5 +178,3 @@ with tab2:
         st.line_chart(df_env.set_index("timestamp")["hum"])
     else:
         st.warning("Aucune donnée environnementale disponible.")
-
-#time.sleep(2)
