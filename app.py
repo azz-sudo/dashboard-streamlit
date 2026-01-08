@@ -1,163 +1,171 @@
 import streamlit as st
 import pandas as pd
+import requests
 from datetime import datetime
 import streamlit as st
 import time
-import firebase_admin
-from firebase_admin import credentials, db
-import paho.mqtt.publish as publish
 
-# CONFIG
+# ==================================================
+# CONFIG STREAMLIT
+# ==================================================
 st.set_page_config(page_title="Dashboard Sécurité", layout="wide")
-#st_autorefresh(interval=3000, key="refresh")  # refresh auto 3s
 
-# MQTT CONFIG
-BROKER = "20.19.162.0"  # Utilise la même IP que dans le code ESP32
-TOPIC = "salle_forte/commande"
+# ==================================================
+# API CONFIG (NODE-RED)
+# ==================================================
+BASE_URL = "https://nodered.ruina.work.gd"
 
-# FIREBASE INIT
-if not firebase_admin._apps:
-    cred = credentials.Certificate(r"C:\streamlit_dashboard\firebase_key.json")
-    firebase_admin.initialize_app(cred, {
-        "databaseURL": "https://projet-final-dfe85-default-rtdb.europe-west1.firebasedatabase.app/"
-    })
+URL_LOGS = f"{BASE_URL}/api/access_logs"
+URL_ENV  = f"{BASE_URL}/api/env"
+URL_CMD  = f"{BASE_URL}/api/cmd"
 
-ref = db.reference("access_logs")
-data = ref.get()
+# ==================================================
+# API HELPERS
+# ==================================================
+@st.cache_data(ttl=2)
+def get_json(url):
+    r = requests.get(url, timeout=5)
+    r.raise_for_status()
+    return r.json()
 
-# RÉCUPÉRER LES DONNÉES ENVIRONNEMENTALES (ASSUMONS QU'ELLES SONT STOCKÉES DANS FIREBASE)
-ref_env = db.reference("data_logs")  # Nouveau chemin pour les données environnementales
-data_env = ref_env.get()
+def post_cmd(cmd):
+    r = requests.post(URL_CMD, json={"cmd": cmd}, timeout=5)
+    r.raise_for_status()
+    return True
 
-# CONVERTIR EN DATAFRAME POUR LES LOGS D'ACCÈS
-if not data:
-    st.warning("Aucune donnée dans Firebase")
+# ==================================================
+# DATA FETCH
+# ==================================================
+try:
+    logs = get_json(URL_LOGS)
+except Exception as e:
+    st.error(f"Erreur API logs: {e}")
     st.stop()
 
-df = pd.DataFrame.from_dict(data, orient="index")
+try:
+    env = get_json(URL_ENV)
+except Exception as e:
+    st.error(f"Erreur API environnement: {e}")
+    env = []
+
+# ==================================================
+# DATAFRAMES
+# ==================================================
+if not logs:
+    st.warning("Aucune donnée disponible")
+    st.stop()
+
+df = pd.DataFrame(logs)
 df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-# CONVERTIR EN DATAFRAME POUR LES DONNÉES ENVIRONNEMENTALES
-if data_env:
-    df_env = pd.DataFrame.from_dict(data_env, orient="index")
+if env:
+    df_env = pd.DataFrame(env)
     df_env["timestamp"] = pd.to_datetime(df_env["timestamp"])
 else:
-    # Si aucune donnée, créer un DataFrame vide avec les colonnes attendues
     df_env = pd.DataFrame(columns=["timestamp", "temp", "hum", "lum", "mq", "fire"])
 
-# TITRE
-st.title(" Dashboard Chambre Forte")
+# ==================================================
+# UI
+# ==================================================
+st.title("📊 Dashboard Chambre Forte")
 
-# CRÉER DES ONGLETS POUR SÉPARER LES SECTIONS (UNE "FENÊTRE" POUR LES CONTRÔLES ET UNE AUTRE POUR LES DONNÉES ENVIRONNEMENTALES)
 tab1, tab2 = st.tabs(["Contrôle et Historique", "Données Environnementales"])
 
+# ==================================================
+# TAB 1 - CONTROLE + HISTORIQUE
+# ==================================================
 with tab1:
-    # CONTRÔLE ESP32
-    st.subheader("Contrôle ESP32")
+    st.subheader("🎛️ Contrôle ESP32")
 
-    col1, col2, col3, col4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
 
-    with col1:
+    with c1:
         if st.button("🔴 LED ROUGE"):
-            publish.single(TOPIC, "LED_ROUGE", hostname=BROKER)
+            post_cmd("LED_ROUGE")
+            st.success("Commande envoyée")
 
-    with col2:
+    with c2:
         if st.button("🟢 LED VERTE"):
-            publish.single(TOPIC, "LED_VERTE", hostname=BROKER)
+            post_cmd("LED_VERTE")
+            st.success("Commande envoyée")
 
-    with col3:
-        if st.button(" OUVRIR PORTE"):
-            publish.single(TOPIC, "OPEN", hostname=BROKER)
+    with c3:
+        if st.button("🚪 OUVRIR PORTE"):
+            post_cmd("OPEN")
+            st.success("Commande envoyée")
 
-    with col4:
-        if st.button(" FERMER PORTE"):
-            publish.single(TOPIC, "CLOSE", hostname=BROKER)
+    with c4:
+        if st.button("🚪 FERMER PORTE"):
+            post_cmd("CLOSE")
+            st.success("Commande envoyée")
 
-    st.markdown("---")
+    st.divider()
 
-    # ÉTAT ACTUEL
-    dernier_etat = df.sort_values("timestamp").iloc[-1]["porte"]
-    dernier_led = df.sort_values("timestamp").iloc[-1]["led"]
+    # ETAT ACTUEL
+    dernier = df.sort_values("timestamp").iloc[-1]
+    etat_porte = dernier["porte"]
+    etat_led = dernier["led"]
 
     col1, col2 = st.columns(2)
 
     with col1:
-        if dernier_etat == "OUVERTE":
-            st.markdown("<h1 style='color:green;'>🟢 OUVERTE</h1>", unsafe_allow_html=True)
+        if etat_porte == "OUVERTE":
+            st.markdown("<h1 style='color:green;'>🟢 PORTE OUVERTE</h1>", unsafe_allow_html=True)
         else:
-            st.markdown("<h1 style='color:red;'>🔴 FERMÉE</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='color:red;'>🔴 PORTE FERMÉE</h1>", unsafe_allow_html=True)
 
     with col2:
-        color_dict = {"VERTE":"green", "ROUGE":"red", "ORANGE":"orange", "BLANC":"gray"}
-        led_color = color_dict.get(dernier_led, "gray")
-        st.markdown(f"<h1 style='color:{led_color};'>💡 {dernier_led}</h1>", unsafe_allow_html=True)
+        colors = {"VERTE": "green", "ROUGE": "red", "ORANGE": "orange", "BLANC": "gray"}
+        color = colors.get(etat_led, "gray")
+        st.markdown(f"<h1 style='color:{color};'>💡 LED {etat_led}</h1>", unsafe_allow_html=True)
 
-    st.markdown("---")
+    st.divider()
 
-    # STATISTIQUES
-    st.subheader(" Statistiques")
-
-    nb_ouvertures = len(df[df["porte"] == "OUVERTE"])
-    st.metric("Nombre d'ouvertures", nb_ouvertures)
+    # STATS
+    st.subheader("📈 Statistiques")
+    st.metric("Nombre d'ouvertures", len(df[df["porte"] == "OUVERTE"]))
 
     # HISTORIQUE
-    st.subheader(" Historique des badges")
+    st.subheader("📜 Historique des badges")
     st.dataframe(
-        df[["timestamp","uid","porte","led"]]
+        df[["timestamp", "uid", "porte", "led"]]
         .sort_values(by="timestamp", ascending=False),
         use_container_width=True
     )
 
-    # GRAPHIQUE
-    st.subheader(" Nombre d'ouvertures par badge")
-    st.bar_chart(
-        df[df["porte"] == "OUVERTE"]["uid"].value_counts()
-    )
+    # GRAPH
+    st.subheader("📊 Nombre d'ouvertures par badge")
+    st.bar_chart(df[df["porte"] == "OUVERTE"]["uid"].value_counts())
 
+# ==================================================
+# TAB 2 - ENVIRONNEMENT
+# ==================================================
 with tab2:
-    # NOUVELLE SECTION POUR LES DONNÉES ENVIRONNEMENTALES
-    st.subheader("Données Environnementales en Temps Réel")
-    
+    st.subheader("🌡️ Données Environnementales")
+
     if not df_env.empty:
-        # AFFICHER LES DERNIÈRES VALEURS
         dernier_env = df_env.sort_values("timestamp").iloc[-1]
-        
-        col1, col2, col3, col4, col5 = st.columns(5)
-        
-        with col1:
-            st.metric("Température (°C)", f"{dernier_env['temp']}")
-        
-        with col2:
-            st.metric("Humidité (%)", f"{dernier_env['hum']}")
-        
-        with col3:
-            st.metric("Luminosité (lux)", f"{dernier_env['lum']}")
-        
-        with col4:
-            st.metric("Qualité de l'Air (AQI)", f"{dernier_env['mq']}")
-        
-        with col5:
-            st.metric("Feu (0-1)", f"{dernier_env['fire']}")
-        
-        # HISTORIQUE DES DONNÉES ENVIRONNEMENTALES
-        st.subheader("Historique des Données Environnementales")
+
+        e1, e2, e3, e4, e5 = st.columns(5)
+        e1.metric("Température (°C)", dernier_env["temp"])
+        e2.metric("Humidité (%)", dernier_env["hum"])
+        e3.metric("Luminosité", dernier_env["lum"])
+        e4.metric("Qualité Air (MQ)", dernier_env["mq"])
+        e5.metric("Feu", dernier_env["fire"])
+
+        st.subheader("📜 Historique")
         st.dataframe(
-            df_env[["timestamp", "temp", "hum", "lum", "mq", "fire"]]
-            .sort_values(by="timestamp", ascending=False),
+            df_env.sort_values(by="timestamp", ascending=False),
             use_container_width=True
         )
-        
-        # GRAPHIQUES POUR LES DONNÉES ENVIRONNEMENTALES
-        st.subheader("Évolution de la Température")
+
+        st.subheader("📉 Température")
         st.line_chart(df_env.set_index("timestamp")["temp"])
-        
-        st.subheader("Évolution de l'Humidité")
+
+        st.subheader("📉 Humidité")
         st.line_chart(df_env.set_index("timestamp")["hum"])
-        
-        # Ajouter des graphiques similaires pour luminosité et qualité de l'air si souhaité
     else:
-        st.warning("Aucune donnée environnementale disponible dans Firebase.")
+        st.warning("Aucune donnée environnementale disponible.")
 
-
-time.sleep(5)
+time.sleep(2)
 st.experimental_rerun()

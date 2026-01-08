@@ -1,6 +1,4 @@
 streamlit
-streamlit_autorefresh
-st_autorefresh
-firebase-admin
 pandas
 numpy
+requests
