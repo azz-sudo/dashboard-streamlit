@@ -1,14 +1,15 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from streamlit_autorefresh import st_autorefresh
+import streamlit as st
+import time
 import firebase_admin
 from firebase_admin import credentials, db
 import paho.mqtt.publish as publish
 
 # CONFIG
 st.set_page_config(page_title="Dashboard Sécurité", layout="wide")
-st_autorefresh(interval=3000, key="refresh")  # refresh auto 3s
+#st_autorefresh(interval=3000, key="refresh")  # refresh auto 3s
 
 # MQTT CONFIG
 BROKER = "20.19.162.0"  # Utilise la même IP que dans le code ESP32
@@ -156,3 +157,7 @@ with tab2:
         # Ajouter des graphiques similaires pour luminosité et qualité de l'air si souhaité
     else:
         st.warning("Aucune donnée environnementale disponible dans Firebase.")
+
+
+time.sleep(5)
+st.experimental_rerun()
