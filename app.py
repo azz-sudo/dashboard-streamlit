@@ -10,16 +10,15 @@ import time
 st.set_page_config(page_title="Dashboard Sécurité", layout="wide")
 
 # ==================================================
-# AUTO REFRESH (STREAMLIT CLOUD COMPATIBLE)
+# AUTO REFRESH (STREAMLIT CLOUD - FIABLE)
 # ==================================================
 REFRESH_INTERVAL = 2  # secondes
 
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
+st.markdown(
+    f"<meta http-equiv='refresh' content='{REFRESH_INTERVAL}'>",
+    unsafe_allow_html=True
+)
 
-if time.time() - st.session_state.last_refresh >= REFRESH_INTERVAL:
-    st.session_state.last_refresh = time.time()
-    st.rerun()
 
 # ==================================================
 # API CONFIG (NODE-RED)
