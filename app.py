@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 from datetime import datetime
 import streamlit as st
-import time
+
 
 # ==================================================
 # CONFIG STREAMLIT
@@ -167,5 +167,5 @@ with tab2:
     else:
         st.warning("Aucune donnée environnementale disponible.")
 
-time.sleep(2)
+#time.sleep(2)
 st.experimental_rerun()
