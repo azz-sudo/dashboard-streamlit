@@ -88,7 +88,7 @@ tab1, tab2 = st.tabs(["Contrôle et Historique", "Données Environnementales"])
 with tab1:
     st.subheader("🎛️ Contrôle ESP32")
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
 
     with c1:
         if st.button("🔴 LED ROUGE"):
