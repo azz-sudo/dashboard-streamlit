@@ -12,7 +12,7 @@ st.set_page_config(page_title="Dashboard Sécurité", layout="wide")
 # ==================================================
 # AUTO REFRESH (STREAMLIT CLOUD - FIABLE)
 # ==================================================
-REFRESH_INTERVAL = 10  # secondes
+REFRESH_INTERVAL = 60  # secondes
 
 st.markdown(
     f"<meta http-equiv='refresh' content='{REFRESH_INTERVAL}'>",
