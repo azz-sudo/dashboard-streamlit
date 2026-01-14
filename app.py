@@ -110,6 +110,11 @@ with tab1:
             post_cmd("CLOSE")
             st.success("Commande envoyée")
 
+    with c5:  # Nouveau bouton pour reset
+        if st.button("🔄 Redémarrage"):
+            post_cmd("RESET")
+            st.success("Commande de redémarrage envoyée")
+
     st.divider()
 
     # ETAT ACTUEL
