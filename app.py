@@ -66,7 +66,7 @@ if not logs:
     st.stop()
 
 df = pd.DataFrame(logs)
-df["timestamp"] = pd.to_datetime(df["timestamp"])
+df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
 
 if env and isinstance(env, list) and len(env) > 0:
     df_env = pd.DataFrame(env)
