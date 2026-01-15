@@ -68,17 +68,18 @@ if not logs:
 df = pd.DataFrame(logs)
 df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-if env:
-    df_env = pd.DataFrame([env])
+if env and isinstance(env, list) and len(env) > 0:
+    df_env = pd.DataFrame(env)
     df_env["timestamp"] = pd.to_datetime(df_env["timestamp"], unit="ms")
 else:
     df_env = pd.DataFrame(columns=["timestamp", "temp", "hum", "lum", "mq", "fire"])
+
 
 # ==================================================
 # UI
 # ==================================================
 st.title("📊 Dashboard Chambre Forte")
-st.caption("🔄 Rafraîchissement automatique toutes les 2 secondes")
+st.caption("🔄 Rafraîchissement automatique toutes les 60 secondes")
 
 tab1, tab2 = st.tabs(["Contrôle et Historique", "Données Environnementales"])
 
