@@ -12,7 +12,7 @@ st.set_page_config(page_title="Dashboard Sécurité", layout="wide")
 # ==================================================
 # AUTO REFRESH (STREAMLIT CLOUD - FIABLE)
 # ==================================================
-REFRESH_INTERVAL = 60  # secondes
+REFRESH_INTERVAL = 45  # secondes
 
 st.markdown(
     f"<meta http-equiv='refresh' content='{REFRESH_INTERVAL}'>",
@@ -79,7 +79,7 @@ else:
 # UI
 # ==================================================
 st.title(" Dashboard Chambre Forte")
-st.caption(" Rafraîchissement automatique toutes les 60 secondes")
+st.caption(" Rafraîchissement automatique toutes les 45 secondes")
 
 tab1, tab2 = st.tabs(["Contrôle et Historique", "Données Environnementales"])
 
